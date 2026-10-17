@@ -138,64 +138,31 @@ def gradient(surface, rect, top, bottom):
 
 
 def bevel(surface, rect, raised=True):
+    """Classic XP tile bevel – thick light/shadow like original."""
     x, y, w, h = rect
-
     if w <= 1 or h <= 1:
         return
 
     if raised:
-        top = WHITE
-        bottom = DARK_GRAY
-        inner_top = LIGHT_GRAY
-        inner_bottom = MID_GRAY
+        # Strong white highlight, dark shadow (classic look)
+        c1, c2 = WHITE, (90, 90, 90)
+        i1, i2 = (220, 220, 220), (130, 130, 130)
     else:
-        top = DARK_GRAY
-        bottom = WHITE
-        inner_top = MID_GRAY
-        inner_bottom = LIGHT_GRAY
+        c1, c2 = (90, 90, 90), WHITE
+        i1, i2 = (130, 130, 130), (220, 220, 220)
 
-    pygame.draw.line(
-        surface, top,
-        (x, y), (x + w - 1, y),
-    )
+    # Outer bevel (2px thick)
+    pygame.draw.line(surface, c1, (x, y), (x + w - 1, y), 2)
+    pygame.draw.line(surface, c1, (x, y), (x, y + h - 1), 2)
+    pygame.draw.line(surface, c2, (x, y + h - 1), (x + w - 1, y + h - 1), 2)
+    pygame.draw.line(surface, c2, (x + w - 1, y), (x + w - 1, y + h - 1), 2)
 
-    pygame.draw.line(
-        surface, top,
-        (x, y), (x, y + h - 1),
-    )
-
-    pygame.draw.line(
-        surface, bottom,
-        (x, y + h - 1), (x + w - 1, y + h - 1),
-    )
-
-    pygame.draw.line(
-        surface, bottom,
-        (x + w - 1, y), (x + w - 1, y + h - 1),
-    )
-
-    if w > 4 and h > 4:
-        pygame.draw.line(
-            surface, inner_top,
-            (x + 1, y + 1), (x + w - 2, y + 1),
-        )
-
-        pygame.draw.line(
-            surface, inner_top,
-            (x + 1, y + 1), (x + 1, y + h - 2),
-        )
-
-        pygame.draw.line(
-            surface, inner_bottom,
-            (x + 1, y + h - 2),
-            (x + w - 2, y + h - 2),
-        )
-
-        pygame.draw.line(
-            surface, inner_bottom,
-            (x + w - 2, y + 1),
-            (x + w - 2, y + h - 2),
-        )
+    # Inner bevel
+    if w > 6 and h > 6:
+        pygame.draw.line(surface, i1, (x + 2, y + 2), (x + w - 3, y + 2), 1)
+        pygame.draw.line(surface, i1, (x + 2, y + 2), (x + 2, y + h - 3), 1)
+        pygame.draw.line(surface, i2, (x + 2, y + h - 3), (x + w - 3, y + h - 3), 1)
+        pygame.draw.line(surface, i2, (x + w - 3, y + 2), (x + w - 3, y + h - 3), 1)
 
 
 def raised_panel(surface, rect):
@@ -468,60 +435,48 @@ SEGMENTS = {
 
 
 def draw_digit(surface, x, y, char):
+    """Classic XP 7-segment with pointed triangular ends."""
     active = SEGMENTS.get(char, "")
 
-    parts = {
-        "a": ((x + 4, y + 1), (x + 10, y + 1)),
-        "g": ((x + 4, y + 12), (x + 10, y + 12)),
-        "d": ((x + 4, y + 23), (x + 10, y + 23)),
-        "f": ((x + 2, y + 3), (x + 2, y + 10)),
-        "b": ((x + 12, y + 3), (x + 12, y + 10)),
-        "e": ((x + 2, y + 14), (x + 2, y + 21)),
-        "c": ((x + 12, y + 14), (x + 12, y + 21)),
+    segs = {
+        "a": [(x+4, y+0), (x+12, y+0), (x+11, y+2), (x+5, y+2)],
+        "g": [(x+4, y+11), (x+12, y+11), (x+11, y+13), (x+5, y+13)],
+        "d": [(x+4, y+22), (x+12, y+22), (x+11, y+24), (x+5, y+24)],
+        "f": [(x+1, y+2), (x+3, y+3), (x+3, y+10), (x+1, y+11)],
+        "b": [(x+13, y+2), (x+15, y+3), (x+15, y+10), (x+13, y+11)],
+        "e": [(x+1, y+13), (x+3, y+14), (x+3, y+21), (x+1, y+22)],
+        "c": [(x+13, y+13), (x+15, y+14), (x+15, y+21), (x+13, y+22)],
     }
 
-    for name, (start, end) in parts.items():
+    for name, pts in segs.items():
         color = RED if name in active else DARK_RED
-
-        pygame.draw.line(
-            surface, color, start, end, 3
-        )
+        pygame.draw.polygon(surface, color, pts)
 
 
 def draw_counter(surface, x, y, value):
-    w, h = 52, 34
+    """Classic XP 7-segment – pointed ends, digits flush to edges."""
+    w, h = 51, 27
 
-    pygame.draw.rect(
-        surface, BLACK, (x, y, w, h)
-    )
+    # Outer sunken frame
+    pygame.draw.rect(surface, GRAY, (x - 2, y - 2, w + 4, h + 4))
+    pygame.draw.line(surface, DARK_GRAY, (x - 2, y - 2), (x + w + 1, y - 2), 1)
+    pygame.draw.line(surface, DARK_GRAY, (x - 2, y - 2), (x - 2, y + h + 1), 1)
+    pygame.draw.line(surface, WHITE, (x - 2, y + h + 1), (x + w + 1, y + h + 1), 1)
+    pygame.draw.line(surface, WHITE, (x + w + 1, y - 2), (x + w + 1, y + h + 1), 1)
 
-    pygame.draw.line(
-        surface, DARK_GRAY,
-        (x, y), (x + w - 1, y), 2,
-    )
+    # Black background
+    pygame.draw.rect(surface, BLACK, (x, y, w, h))
 
-    pygame.draw.line(
-        surface, DARK_GRAY,
-        (x, y), (x, y + h - 1), 2,
-    )
-
-    pygame.draw.line(
-        surface, WHITE,
-        (x, y + h - 1), (x + w - 1, y + h - 1), 2,
-    )
-
-    pygame.draw.line(
-        surface, WHITE,
-        (x + w - 1, y), (x + w - 1, y + h - 1), 2,
-    )
+    # Thin inner edge
+    pygame.draw.line(surface, (40, 40, 40), (x, y), (x + w - 1, y), 1)
+    pygame.draw.line(surface, (40, 40, 40), (x, y), (x, y + h - 1), 1)
 
     value = max(-99, min(999, int(value)))
-    text = f"{value:03d}"
+    text_str = f"{value:03d}"
 
-    for i, char in enumerate(text):
-        draw_digit(
-            surface, x + 4 + i * 16, y + 4, char
-        )
+    # Digits sit almost flush top-to-bottom inside the black box
+    for i, char in enumerate(text_str):
+        draw_digit(surface, x + 2 + i * 16, y + 1, char)
 
 
 # ============================================================
@@ -587,177 +542,41 @@ def draw_flag(surface, x, y):
 # ============================================================
 
 def draw_face(surface, cx, cy, expression):
-    """
-    Draw the classic Minesweeper face.
-
-    happy      = normal smile
-    surprised  = pressed mouse button
-    dead       = mine hit, X eyes
-    win        = sunglasses
-    """
-
-    # Classic raised square button.
-    size = 34
-
-    rect = pygame.Rect(
-        cx - size // 2,
-        cy - size // 2,
-        size,
-        size,
-    )
-
+    """Classic XP Minesweeper face – thin outline, smile close to eyes."""
+    size = 32
+    rect = pygame.Rect(cx - size // 2, cy - size // 2, size, size)
     raised_panel(surface, rect)
 
-    # Slightly smaller circular outline and yellow face.
-    # The black outline is drawn first.
-    pygame.draw.circle(
-        surface, BLACK, (cx, cy), 12
-    )
-
-    pygame.draw.circle(
-        surface, YELLOW, (cx, cy), 10
-    )
-
-    # Tiny highlight on the upper-left side.
-    pygame.draw.arc(
-        surface,
-        (255, 255, 170),
-        (cx - 8, cy - 8, 14, 14),
-        math.radians(135),
-        math.radians(225),
-        1,
-    )
-
-    # --------------------------------------------------------
-    # DEAD FACE: X-shaped eyes and a frown
-    # --------------------------------------------------------
+    # Face circle – thin black outline
+    pygame.draw.circle(surface, BLACK, (cx, cy), 10)
+    pygame.draw.circle(surface, YELLOW, (cx, cy), 9)
 
     if expression == "dead":
-        for ex in (cx - 4, cx + 4):
-            pygame.draw.line(
-                surface,
-                BLACK,
-                (ex - 2, cy - 5),
-                (ex + 2, cy - 1),
-                2,
-            )
-
-            pygame.draw.line(
-                surface,
-                BLACK,
-                (ex + 2, cy - 5),
-                (ex - 2, cy - 1),
-                2,
-            )
-
-        # Frown.
-        pygame.draw.arc(
-            surface,
-            BLACK,
-            (cx - 6, cy + 1, 12, 8),
-            math.radians(35),
-            math.radians(145),
-            2,
-        )
-
-    # --------------------------------------------------------
-    # WIN FACE: BLACK SUNGLASSES AND A SMILE
-    # --------------------------------------------------------
+        for ex in (cx - 3, cx + 3):
+            pygame.draw.line(surface, BLACK, (ex - 2, cy - 3), (ex + 2, cy + 1), 1)
+            pygame.draw.line(surface, BLACK, (ex + 2, cy - 3), (ex - 2, cy + 1), 1)
+        pygame.draw.arc(surface, BLACK, (cx - 4, cy + 1, 8, 5),
+                        math.radians(45), math.radians(135), 1)
 
     elif expression == "win":
-        # Left sunglass lens.
-        pygame.draw.rect(
-            surface,
-            BLACK,
-            (cx - 9, cy - 5, 7, 5),
-        )
-
-        # Right sunglass lens.
-        pygame.draw.rect(
-            surface,
-            BLACK,
-            (cx + 2, cy - 5, 7, 5),
-        )
-
-        # Bridge between the lenses.
-        pygame.draw.line(
-            surface,
-            BLACK,
-            (cx - 2, cy - 3),
-            (cx + 2, cy - 3),
-            2,
-        )
-
-        # Smile.
-        pygame.draw.arc(
-            surface,
-            BLACK,
-            (cx - 6, cy - 2, 12, 9),
-            math.radians(200),
-            math.radians(340),
-            2,
-        )
-
-    # --------------------------------------------------------
-    # SURPRISED FACE: OPEN EYES AND O-SHAPED MOUTH
-    # --------------------------------------------------------
+        pygame.draw.rect(surface, BLACK, (cx - 7, cy - 3, 5, 3))
+        pygame.draw.rect(surface, BLACK, (cx + 2, cy - 3, 5, 3))
+        pygame.draw.line(surface, BLACK, (cx - 2, cy - 2), (cx + 2, cy - 2), 1)
+        pygame.draw.arc(surface, BLACK, (cx - 4, cy, 8, 6),
+                        math.radians(210), math.radians(330), 1)
 
     elif expression == "surprised":
-        # Eyes.
-        pygame.draw.circle(
-            surface,
-            BLACK,
-            (cx - 4, cy - 3),
-            2,
-        )
-
-        pygame.draw.circle(
-            surface,
-            BLACK,
-            (cx + 4, cy - 3),
-            2,
-        )
-
-        # Open mouth.
-        pygame.draw.ellipse(
-            surface,
-            BLACK,
-            (cx - 2, cy + 2, 4, 6),
-        )
-
-        pygame.draw.ellipse(
-            surface,
-            WHITE,
-            (cx - 1, cy + 3, 2, 3),
-        )
-
-    # --------------------------------------------------------
-    # NORMAL FACE: DOT EYES AND CURVED SMILE
-    # --------------------------------------------------------
+        pygame.draw.circle(surface, BLACK, (cx - 3, cy - 2), 2)
+        pygame.draw.circle(surface, BLACK, (cx + 3, cy - 2), 2)
+        pygame.draw.ellipse(surface, BLACK, (cx - 2, cy + 1, 4, 4))
+        pygame.draw.ellipse(surface, YELLOW, (cx - 1, cy + 2, 2, 2))
 
     else:
-        pygame.draw.circle(
-            surface,
-            BLACK,
-            (cx - 4, cy - 3),
-            1,
-        )
-
-        pygame.draw.circle(
-            surface,
-            BLACK,
-            (cx + 4, cy - 3),
-            1,
-        )
-
-        pygame.draw.arc(
-            surface,
-            BLACK,
-            (cx - 6, cy - 3, 12, 9),
-            math.radians(200),
-            math.radians(340),
-            2,
-        )
+        # Classic happy: small eyes, smile close underneath
+        pygame.draw.circle(surface, BLACK, (cx - 3, cy - 2), 1)
+        pygame.draw.circle(surface, BLACK, (cx + 3, cy - 2), 1)
+        pygame.draw.arc(surface, BLACK, (cx - 5, cy - 1, 10, 6),
+                        math.radians(210), math.radians(330), 1)
 
 
 # ============================================================
@@ -782,8 +601,6 @@ class Minesweeper:
         self.dialog = None
         self.dialog_button = None
 
-        # Tracks whether the mouse is currently held over a
-        # covered board square.
         self.mouse_down_cell = None
 
         pygame.display.set_caption("Minesweeper")
@@ -807,10 +624,6 @@ class Minesweeper:
         pygame.time.delay(100)
         apply_rounded_corners()
 
-    # ========================================================
-    # DIMENSIONS
-    # ========================================================
-
     def calculate_dimensions(self):
         self.width = SIDE_MARGIN * 2 + self.cols * TILE
 
@@ -827,10 +640,6 @@ class Minesweeper:
         self.screen = pygame.display.set_mode(
             (self.width, self.height)
         )
-
-    # ========================================================
-    # DIFFICULTY SELECTION
-    # ========================================================
 
     def select_difficulty(self, difficulty):
         if difficulty not in DIFFICULTIES:
@@ -851,10 +660,6 @@ class Minesweeper:
             pygame.time.delay(80)
             refresh_window_shape()
             set_windows_icon()
-
-    # ========================================================
-    # RESET
-    # ========================================================
 
     def reset(self):
         self.board = [
@@ -881,7 +686,6 @@ class Minesweeper:
 
         self.exploded = None
 
-        # Always start a new game with the normal smiley.
         self.face = "happy"
 
         self.mouse_down_cell = None
@@ -891,10 +695,6 @@ class Minesweeper:
 
         self.dialog = None
         self.dialog_button = None
-
-    # ========================================================
-    # GAME LOGIC
-    # ========================================================
 
     def neighbors(self, x, y):
         for dy in (-1, 0, 1):
@@ -1035,10 +835,6 @@ class Minesweeper:
                 for x in range(self.cols):
                     if self.board[y][x] == -1:
                         self.flags[y][x] = True
-
-    # ========================================================
-    # TITLE BAR BUTTONS
-    # ========================================================
 
     def draw_title_mine(self, x, y):
         cx = x + 10
@@ -1222,15 +1018,12 @@ class Minesweeper:
         self.draw_title_button("maximize")
         self.draw_title_button("close")
 
-    # ========================================================
-    # MENU BAR
-    # ========================================================
-
     def draw_menu_bar(self):
         y = TITLE_HEIGHT
 
+        # Classic XP creamy/beige menu bar
         pygame.draw.rect(
-            self.screen, GRAY,
+            self.screen, (236, 233, 216),
             (0, y, self.width, MENU_HEIGHT),
         )
 
@@ -1264,10 +1057,6 @@ class Minesweeper:
             FONT_MENU.render("Help", True, help_color),
             (62, y + 5),
         )
-
-    # ========================================================
-    # GAME MENU
-    # ========================================================
 
     def draw_game_menu(self):
         mx = 5
@@ -1339,10 +1128,6 @@ class Minesweeper:
                 )
 
             y += 23
-
-    # ========================================================
-    # HELP MENU
-    # ========================================================
 
     def draw_help_menu(self):
         mx = 57
@@ -1428,13 +1213,10 @@ class Minesweeper:
 
         self.dialog_button = button
 
-    # ========================================================
-    # HEADER
-    # ========================================================
-
     def draw_header(self):
         y = TITLE_HEIGHT + MENU_HEIGHT
 
+        # Single raised panel so counters + face feel on the same surface
         raised_panel(
             self.screen,
             (
@@ -1472,17 +1254,13 @@ class Minesweeper:
             min(999, elapsed),
         )
 
-        # Draw the current face expression.
+        # Align face button with the vertical centre of the counters
         draw_face(
             self.screen,
             self.width // 2,
-            y + 38,
+            y + 40,
             self.face,
         )
-
-    # ========================================================
-    # BOARD
-    # ========================================================
 
     def draw_board(self):
         bx = SIDE_MARGIN
@@ -1585,10 +1363,6 @@ class Minesweeper:
                     if flagged:
                         draw_flag(self.screen, px, py)
 
-    # ========================================================
-    # MAIN DRAW
-    # ========================================================
-
     def draw(self):
         self.screen.fill(GRAY)
 
@@ -1603,17 +1377,17 @@ class Minesweeper:
         elif self.help_open:
             self.draw_help_menu()
 
+        # Thicker classic XP blue border
         border_rect = pygame.Rect(
-            1, 1,
-            self.width - 2,
-            self.height - 2,
+            0, 0,
+            self.width,
+            self.height,
         )
-
         pygame.draw.rect(
             self.screen,
             XP_BORDER,
             border_rect,
-            width=2,
+            width=3,
         )
 
         if self.dialog is not None:
@@ -1621,10 +1395,6 @@ class Minesweeper:
             self.draw_help_dialog(title, lines)
 
         pygame.display.flip()
-
-    # ========================================================
-    # MENU ACTIONS
-    # ========================================================
 
     def handle_menu_click(self, mx, my):
         for rect, label in self.menu_items:
@@ -1673,10 +1443,6 @@ class Minesweeper:
 
         return False
 
-    # ========================================================
-    # TITLE BAR INPUT
-    # ========================================================
-
     def handle_title_click(self, mx, my):
         if my >= TITLE_HEIGHT:
             return False
@@ -1712,10 +1478,6 @@ class Minesweeper:
                     self.hover_button = kind
                     break
 
-    # ========================================================
-    # MOUSE POSITION HELPERS
-    # ========================================================
-
     def board_cell_at(self, mx, my):
         gx = (mx - SIDE_MARGIN) // TILE
         gy = (my - self.board_top) // TILE
@@ -1730,16 +1492,12 @@ class Minesweeper:
 
     def face_at(self, mx, my):
         face_x = self.width // 2
-        face_y = TITLE_HEIGHT + MENU_HEIGHT + 38
+        face_y = TITLE_HEIGHT + MENU_HEIGHT + 40
 
         return (
-            abs(mx - face_x) <= 17
-            and abs(my - face_y) <= 17
+            abs(mx - face_x) <= 16
+            and abs(my - face_y) <= 16
         )
-
-    # ========================================================
-    # EVENT LOOP
-    # ========================================================
 
     def run(self):
         running = True
@@ -1753,10 +1511,6 @@ class Minesweeper:
 
                 if event.type == pygame.QUIT:
                     running = False
-
-                # ------------------------------------------------
-                # KEYBOARD
-                # ------------------------------------------------
 
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
@@ -1773,16 +1527,11 @@ class Minesweeper:
                     elif event.key == pygame.K_F2:
                         self.reset()
 
-                # ------------------------------------------------
-                # MOUSE BUTTON PRESSED
-                # ------------------------------------------------
-
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     mx, my = event.pos
 
                     if event.button == 1:
 
-                        # Dialog.
                         if self.dialog is not None:
                             if (
                                 self.dialog_button
@@ -1794,12 +1543,10 @@ class Minesweeper:
 
                             continue
 
-                        # Custom title bar.
                         if my < TITLE_HEIGHT:
                             self.handle_title_click(mx, my)
                             continue
 
-                        # Menu bar.
                         if (
                             TITLE_HEIGHT <= my
                             < TITLE_HEIGHT + MENU_HEIGHT
@@ -1818,7 +1565,6 @@ class Minesweeper:
                             self.help_open = False
                             continue
 
-                        # Dropdown menus.
                         if self.menu_open:
                             if self.handle_menu_click(mx, my):
                                 continue
@@ -1831,13 +1577,10 @@ class Minesweeper:
 
                             self.help_open = False
 
-                        # Clicking the face resets the game.
                         if self.face_at(mx, my):
                             self.reset()
                             continue
 
-                        # Only show the surprised expression while
-                        # pressing an unrevealed, unflagged square.
                         cell = self.board_cell_at(mx, my)
 
                         if cell is not None:
@@ -1851,7 +1594,6 @@ class Minesweeper:
                                 self.mouse_down_cell = cell
                                 self.face = "surprised"
 
-                    # Right-click places a flag.
                     elif event.button == 3:
                         if self.dialog is not None:
                             continue
@@ -1862,10 +1604,6 @@ class Minesweeper:
                             gx, gy = cell
                             self.toggle_flag(gx, gy)
 
-                # ------------------------------------------------
-                # MOUSE BUTTON RELEASED
-                # ------------------------------------------------
-
                 elif event.type == pygame.MOUSEBUTTONUP:
                     mx, my = event.pos
 
@@ -1875,13 +1613,9 @@ class Minesweeper:
 
                         self.mouse_down_cell = None
 
-                        # Do not change the dead or win face.
                         if self.game_over:
                             continue
 
-                        # If the player was pressing a board square,
-                        # reveal it only if the release is over that
-                        # same square.
                         if pressed_cell is not None:
                             released_cell = self.board_cell_at(
                                 mx, my
@@ -1897,14 +1631,8 @@ class Minesweeper:
                                 else:
                                     self.reveal(gx, gy)
 
-                            # reveal() changes the face to dead if
-                            # the selected square contains a mine.
-                            # check_win() changes it to sunglasses
-                            # if the player wins.
                             continue
 
-            # Keep the surprised expression only while the left
-            # mouse button is held over the original covered cell.
             if (
                 not self.game_over
                 and self.mouse_down_cell is not None
@@ -1919,10 +1647,6 @@ class Minesweeper:
 
         pygame.quit()
 
-
-# ============================================================
-# START GAME
-# ============================================================
 
 if __name__ == "__main__":
     game = Minesweeper("Intermediate")
